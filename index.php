@@ -14,8 +14,9 @@ class SiteUtil extends CIBlockElement {
     protected static $objectsElements = array();
     protected static $lastNewsElement = array();
     protected static $objectsHLCategory = array();
-    protected static $categoryHL = 2;
-    protected static $elementIblockNews = 1;
+    protected static $categoryHL = 'Category';
+    protected static $elementCodeIblockNews = 'NEWS_'.LANGUAGE_ID;
+    protected static $elementIdIblockNews = null;
     protected static $addElementCount = 0;
     protected static $searchElementCount = 0;
 
@@ -37,6 +38,22 @@ class SiteUtil extends CIBlockElement {
         return $titles[($n % 100 > 4 && $n % 100 < 20) ? 2 : $cases[min($n % 10, 5)]];
     }
 
+    public static function GetIBlockIDByCode($code){
+        $arrFilter = array(
+            'ACTIVE'  => 'Y',
+            'CODE'    => $code,
+        );
+
+        $res = CIBlock::GetList(Array("SORT" => "ASC"), $arrFilter, false);
+        $arIBlockId = "";
+
+        if ($ar_res = $res->Fetch()) {
+            $arIBlockId = $ar_res["ID"];
+        }
+
+        return $arIBlockId;
+    }
+
 
     /*
      *
@@ -46,9 +63,7 @@ class SiteUtil extends CIBlockElement {
 
     /*Один раз получаем все категории для новостей*/
     public static function getHL(){
-        $hlblock = HL\HighloadBlockTable::getById(self::$categoryHL)->fetch();
-
-        $entity = HL\HighloadBlockTable::compileEntity($hlblock);
+        $entity = HL\HighloadBlockTable::compileEntity(self::$categoryHL);
         $entity_data_class = $entity->getDataClass();
 
         $rsData = $entity_data_class::getList(array(
@@ -98,6 +113,8 @@ class SiteUtil extends CIBlockElement {
     * */
     public static function load_from_xml($xmlData) {
 
+        self::$elementIdIblockNews = self::GetIBlockIDByCode(self::$elementCodeIblockNews);
+
         $arrData = (json_decode(json_encode($xmlData), true));
 
         foreach ($arrData['channel']['item'] as $item=>$arItem){
@@ -120,7 +137,7 @@ class SiteUtil extends CIBlockElement {
                 self::addHL($arItem['category'], $xml_id);
             }
 
-            self::$objectsElements[$item]['IBLOCK_ID'] = self::$elementIblockNews;
+            self::$objectsElements[$item]['IBLOCK_ID'] = self::$elementIdIblockNews;
             self::$objectsElements[$item]['NAME'] = trim($arItem['title']);
             self::$objectsElements[$item]['CODE'] =  $code_element;
             self::$objectsElements[$item]['ACTIVE'] =  'Y';
@@ -154,7 +171,7 @@ class SiteUtil extends CIBlockElement {
     //Данная функция получает последнюю новость, данная функция надо для того, чтобы ограничить добавления новостей с RSS ленты.
     public static function lastElement(){
         $arSelect = array('NAME', 'DATE_ACTIVE_FROM');
-        $arFilter = array('IBLOCK_ID' => self::$elementIblockNews);
+        $arFilter = array('IBLOCK_ID' => self::$elementIdIblockNews);
         $res = CIBlockElement::GetList(array('DATE_ACTIVE_FROM'=>'DESC'), $arFilter, false, array('nPageSize' => 1), $arSelect);
         if ($ob = $res->fetch()) {
             self::$lastNewsElement['NAME'] = $ob['NAME'];
@@ -182,7 +199,7 @@ class SiteUtil extends CIBlockElement {
         }
 
         $arSelect = array('ID', 'NAME', 'PREVIEW_TEXT', 'DATE_ACTIVE_FROM', 'PROPERTY_CATEGORY', 'PROPERTY_URL');
-        $arFilter = array('IBLOCK_ID' => self::$elementIblockNews, 'PROPERTY_CATEGORY'=>$arFilterCode);
+        $arFilter = array('IBLOCK_ID' => self::$elementIdIblockNews, 'PROPERTY_CATEGORY'=>$arFilterCode);
         $res = CIBlockElement::GetList(array('DATE_ACTIVE_FROM'=>'DESC'), $arFilter, false, false, $arSelect);
         while($ob = $res->fetch()) {
             $arsearchElement[$ob['ID']]['NAME'] = $ob['NAME'];
