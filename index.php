@@ -158,22 +158,16 @@ class CategoryHLB
     }
 }
 
-class ElementNews
-{
+
+class UpdateNews{
+    private $addElementCount = 0;
     private $objectsElements = [];
     private $lastNewsElement = [];
     private $elementCodeIblockNews = 'NEWS_'.LANGUAGE_ID;
     private $elementIdIblockNews = null;
-    private $addElementCount = 0;
-    private $searchECategoryCount = 0;
-
     private $CategoryHLB;
-    public function __construct()
-    {
-        $this->CategoryHLB = new CategoryHLB;
-    }
 
-    CONST PARAMS = [
+    private CONST PARAMS = [
         'max_len' => '100', // обрезает символьный код до 100 символов
         'change_case' => 'L', // буквы преобразуются к нижнему регистру
         'replace_space' => '_', // меняем пробелы на нижнее подчеркивание
@@ -181,6 +175,120 @@ class ElementNews
         'delete_repeat_replace' => 'true', // удаляем повторяющиеся нижние подчеркивания
         'use_google' => 'false', // отключаем использование google
     ];
+
+    public function __construct()
+    {
+        $this->CategoryHLB = new CategoryHLB;
+        $this->CategoryHLB->getList();
+        $this->elementIdIblockNews = $this->getIBlockIDByCode($this->elementCodeIblockNews);
+    }
+
+    /*
+     *
+     * Функция добавления нового элемента в инфблок.
+     * Добавление нового элемента сделал через Add(без ORM) так как ORM метод add заблокирован
+     *
+     * */
+    private function addElement($element)
+    {
+        $el = new CIBlockElement;
+        if($newElemeniId = $el->Add($element)) {
+            echo 'Добавлена новая новость ID: '.$newElemeniId .'<br>';
+            $this->addElementCount++;
+        } else {
+            echo 'Ошибка при создание новости: '.$el->LAST_ERROR.'<br>';
+        }
+    }
+
+    /*
+     *
+     * Функция получения ID инфоблока, принимает символьный код инфоблока
+     *
+     * */
+    private function getIBlockIDByCode($code)
+    {
+        $arIblock = \Bitrix\Iblock\IblockTable::getList(array(
+            'select' => ['ID'],
+            'filter' => ['CODE' => $code],
+        ))->fetch();
+
+        return $arIblock['ID'];
+    }
+
+    /*
+     *
+     * Данная функция получает последнюю новость, данная функция надо для того, чтобы ограничить добавления новостей с RSS ленты.
+     *
+     * */
+    private function updateLastElement()
+    {
+        $lastElements = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
+            'order'  => ['ACTIVE_FROM' => 'DESC'],
+            'select' => ['NAME', 'ACTIVE_FROM'],
+            'filter' => ['=ACTIVE' => 'Y'],
+            'cache'  => ['ttl' => 3600],
+            'limit'  => 1,
+        ])->fetch();
+
+        $this->lastNewsElement['NAME'] = $lastElements['NAME'];
+        $this->lastNewsElement['ACTIVE_FROM'] = CDatabase::FormatDate($lastElements['ACTIVE_FROM']);
+    }
+
+    public function loadFromXml($fileRssLenta)
+    {
+        $this->updateLastElement();
+
+        $arrDataRss = (json_decode(json_encode($fileRssLenta), true));
+
+        foreach ($arrDataRss['channel']['item'] as $item=>$arItem){
+            $dataActiveFrom = date('d.m.Y G:i:s', strtotime($arItem['pubDate']));
+            $codeElement = Cutil::translit($arItem['title'],'ru', self::PARAMS);
+
+            //Проверяем элемент с RSS ленты с последним елементом в инфоблоке. Делаем это для того, что бы уменьшить кол-во запросов к БД
+            if(!($this->lastNewsElement['ACTIVE_FROM'] != $dataActiveFrom && $this->lastNewsElement['NAME'] != trim($arItem['title']))){
+                break;
+            }
+
+            $xmlId = Cutil::translit($arItem['category'],'ru', self::PARAMS);
+            $props['CATEGORY'] = $xmlId;
+            $props['URL'] = $arItem['link'];
+
+            //Проверяем есть ли категория в Highload-блоке, если нет, то добавляем новую категорию
+            if(empty($this->CategoryHLB->getElementCatagory($xmlId))){
+                $this->CategoryHLB->add($arItem['category'], $xmlId);
+            }
+
+            $this->objectsElements[$item]['IBLOCK_ID'] = $this->elementIdIblockNews;
+            $this->objectsElements[$item]['NAME'] = trim($arItem['title']);
+            $this->objectsElements[$item]['CODE'] =  $codeElement;
+            $this->objectsElements[$item]['ACTIVE'] =  'Y';
+            $this->objectsElements[$item]['PREVIEW_TEXT'] =  $arItem['description'];
+            $this->objectsElements[$item]['ACTIVE_FROM'] =  $dataActiveFrom;
+            $this->objectsElements[$item]['PROPERTY_VALUES'] =  $props;
+
+            $this->addElement($this->objectsElements[$item]);
+        }
+
+        if($this->addElementCount > 0){
+            echo 'Количество новых новостей: '.$this->addElementCount.'<br>';
+        } else {
+            echo 'Нет новых элементов <br>';
+        }
+    }
+
+}
+
+
+class GetElementNews
+{
+    private $searchECategoryCount = 0;
+    private $CategoryHLB;
+    
+    public function __construct()
+    {
+        $this->CategoryHLB = new CategoryHLB;
+        $this->CategoryHLB->getList();
+    }
 
     private function writeSearchElement($arSearchElements)
     {
@@ -204,96 +312,8 @@ class ElementNews
         return $word3;
     }
 
-    private function getIBlockIDByCode($code)
+    public function getSearchElement($q)
     {
-        $arIblock = \Bitrix\Iblock\IblockTable::getList(array(
-            'select' => ['ID'],
-            'filter' => ['CODE' => $code],
-        ))->fetch();
-
-        return $arIblock['ID'];
-    }
-
-    /*
-    *
-    * BEGIN функции для работы с инфоблокам Новости
-    *
-    * */
-    public function loadFromXml($fileRssLenta)
-    {
-        $this->elementIdIblockNews = self::getIBlockIDByCode($this->elementCodeIblockNews);
-        $this->CategoryHLB->getList();
-        self::lastElement();
-
-        $arrDataRss = (json_decode(json_encode($fileRssLenta), true));
-
-        foreach ($arrDataRss['channel']['item'] as $item=>$arItem){
-            $dataActiveFrom = date('d.m.Y G:i:s', strtotime($arItem['pubDate']));
-            $codeElement = Cutil::translit($arItem['title'],'ru', self::PARAMS);
-
-            //Проверяем элемент с RSS ленты с последним елементом в инфоблоке. Делаем это для того, что бы уменьшить кол-во запросов к БД
-            if(!($this->lastNewsElement['DATE_ACTIVE_FROM'] != $dataActiveFrom && $this->lastNewsElement['NAME'] != trim($arItem['title']))){
-                break;
-            }
-
-            $xmlId = Cutil::translit($arItem['category'],'ru', self::PARAMS);
-            $props['CATEGORY'] = $xmlId;
-            $props['URL'] = $arItem['link'];
-
-            //Проверяем есть ли категория в Highload-блоке, если нет, то добавляем новую категорию
-            if(empty($this->CategoryHLB->getElementCatagory($xmlId))){
-                $this->CategoryHLB->add($arItem['category'], $xmlId);
-            }
-
-            $this->objectsElements[$item]['IBLOCK_ID'] = $this->elementIdIblockNews;
-            $this->objectsElements[$item]['NAME'] = trim($arItem['title']);
-            $this->objectsElements[$item]['CODE'] =  $codeElement;
-            $this->objectsElements[$item]['ACTIVE'] =  'Y';
-            $this->objectsElements[$item]['PREVIEW_TEXT'] =  $arItem['description'];
-            $this->objectsElements[$item]['DATE_ACTIVE_FROM'] =  $dataActiveFrom;
-            $this->objectsElements[$item]['PROPERTY_VALUES'] =  $props;
-
-            self::addElement($this->objectsElements[$item]);
-        }
-
-        if($this->addElementCount > 0){
-            echo 'Количество новых новостей: '.$this->addElementCount.'<br>';
-        } else {
-            echo 'Нет новых элементов <br>';
-        }
-
-    }
-
-    //Функция добавления новой новости
-    private function addElement($element)
-    {
-        $el = new CIBlockElement;
-        if($newElemeniId = $el->Add($element)) {
-            echo 'Добавлена новая новость ID: '.$newElemeniId .'<br>';
-            $this->addElementCount++;
-        } else {
-            echo 'Ошибка при создание новости: '.$el->LAST_ERROR.'<br>';
-        }
-    }
-
-    //Данная функция получает последнюю новость, данная функция надо для того, чтобы ограничить добавления новостей с RSS ленты.
-    public function lastElement()
-    {
-        $lastElements = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
-            'order'  => ['ACTIVE_FROM' => 'DESC'],
-            'select' => ['NAME', 'ACTIVE_FROM'],
-            'filter' => ['=ACTIVE' => 'Y'],
-            'cache'  => ['ttl' => 3600],
-            'limit'  => 1,
-        ])->fetch();
-
-        $this->lastNewsElement['NAME'] = $lastElements['NAME'];
-        $this->lastNewsElement['DATE_ACTIVE_FROM'] = CDatabase::FormatDate($lastElements['ACTIVE_FROM']);
-    }
-
-    public function searchElement($q)
-    {
-        $this->CategoryHLB->getList();
         $allCategory = $this->CategoryHLB->allElementCatagory();
 
         $searchElement = '';
@@ -307,7 +327,7 @@ class ElementNews
         }
 
         if($this->searchECategoryCount > 0){
-            $textElement =  self::getRussianWordNumber($this->searchECategoryCount, 'категория', 'категории', 'категорий');
+            $textElement =  $this->getRussianWordNumber($this->searchECategoryCount, 'категория', 'категории', 'категорий');
             echo 'По поисковой фразе: "'.$q.'" было найдено '. $this->searchECategoryCount . ' '.$textElement.': '.substr($searchElement, 0, -2).'.<br>';
         } else {
             echo 'По поисковой фразе: "'.$q.'" не найдено ни одной категории.<br>';
@@ -320,7 +340,6 @@ class ElementNews
         ])->fetchAll();
 
         if(count($elements) > 0){
-            $textElement =  self::getRussianWordNumber(count($elements), 'новость', 'новости', 'новостей');
             echo 'Количество найденных новостей: '.count($elements) .'.<br>';
         }
 
@@ -328,11 +347,11 @@ class ElementNews
             $arSearchElements[$element['ID']]['NAME'] = $element['NAME'];
             $arSearchElements[$element['ID']]['URL'] = $element['IBLOCK_ELEMENTS_ELEMENT_NEWS_URL_VALUE'];
             $arSearchElements[$element['ID']]['PREVIEW_TEXT'] = $element['PREVIEW_TEXT'];
-            $arSearchElements[$element['ID']]['DATE_ACTIVE_FROM'] = CDatabase::FormatDate($element['ACTIVE_FROM']);
+            $arSearchElements[$element['ID']]['ACTIVE_FROM'] = CDatabase::FormatDate($element['ACTIVE_FROM']);
             $arSearchElements[$element['ID']]['CATEGORY'] = $this->CategoryHLB->getElementCatagory($element['IBLOCK_ELEMENTS_ELEMENT_NEWS_CATEGORY_VALUE']);
         }
 
-        self::writeSearchElement($arSearchElements);
+        $this->writeSearchElement($arSearchElements);
     }
 }
 ?>
@@ -349,13 +368,14 @@ class ElementNews
 </form>
 
 <?
-$ElementNews = new \ElementNews;
 
 if($_GET['parser_rss'] == 'y'){
+    $updateNews = new \UpdateNews;
     $xmlData=simplexml_load_file('https://lenta.ru/rss', null, LIBXML_NOCDATA);
-    $ElementNews->loadFromXml($xmlData);
+    $updateNews->loadFromXml($xmlData);
 }
 if(!empty($_GET['q'])){
-    $ElementNews->searchElement($_GET['q']);
+    $getElementNews = new \GetElementNews;
+    $getElementNews->getSearchElement($_GET['q']);
 }
 ?>
