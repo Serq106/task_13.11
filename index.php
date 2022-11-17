@@ -1,24 +1,181 @@
 <?php
+
 require_once($_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php');
-use Bitrix\Main\Loader;
+
+use Bitrix\Main\Localization\Loc,
+    Bitrix\Main\ORM\Data\DataManager,
+    Bitrix\Main\ORM\Fields\IntegerField,
+    Bitrix\Main\ORM\Fields\TextField,
+    Bitrix\Main\Loader,
+    Bitrix\Main\Entity,
+    Bitrix\Highloadblock as HL;
 
 CModule::IncludeModule('iblock');
 Loader::includeModule('highloadblock');
 
-use Bitrix\Highloadblock as HL;
-use Bitrix\Main\Entity;
+/**
+ * Class CategoryTable
+ *
+ * Fields:
+ * <ul>
+ * <li> ID int mandatory
+ * <li> UF_NAME text optional
+ * <li> UF_SORT int optional
+ * <li> UF_XML_ID text optional
+ * <li> UF_LINK text optional
+ * <li> UF_DESCRIPTION text optional
+ * <li> UF_FULL_DESCRIPTION text optional
+ * <li> UF_DEF int optional
+ * <li> UF_FILE int optional
+ * </ul>
+ *
+ * @package Bitrix\Hlbd
+ **/
+
+class CategoryTable extends DataManager
+{
+    /**
+     * Returns DB table name for entity.
+     *
+     * @return string
+     */
+    public static function getTableName()
+    {
+        return 'b_hlbd_category';
+    }
+
+    /**
+     * Returns entity map definition.
+     *
+     * @return array
+     */
+    public static function getMap()
+    {
+        return [
+            new IntegerField(
+                'ID',
+                [
+                    'primary' => true,
+                    'autocomplete' => true,
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_ID_FIELD')
+                ]
+            ),
+            new TextField(
+                'UF_NAME',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_NAME_FIELD')
+                ]
+            ),
+            new IntegerField(
+                'UF_SORT',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_SORT_FIELD')
+                ]
+            ),
+            new TextField(
+                'UF_XML_ID',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_XML_ID_FIELD')
+                ]
+            ),
+            new TextField(
+                'UF_LINK',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_LINK_FIELD')
+                ]
+            ),
+            new TextField(
+                'UF_DESCRIPTION',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_DESCRIPTION_FIELD')
+                ]
+            ),
+            new TextField(
+                'UF_FULL_DESCRIPTION',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_FULL_DESCRIPTION_FIELD')
+                ]
+            ),
+            new IntegerField(
+                'UF_DEF',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_DEF_FIELD')
+                ]
+            ),
+            new IntegerField(
+                'UF_FILE',
+                [
+                    'title' => Loc::getMessage('CATEGORY_ENTITY_UF_FILE_FIELD')
+                ]
+            ),
+        ];
+    }
+}
+
+class CategoryHLB
+{
+    private $objectsHLBCategory = [];
+
+    public function getList()
+    {
+        $arCatagorys = CategoryTable::getList(
+            [
+                "select" => [
+                    'NAME' => 'UF_NAME',
+                    'XML_ID' => 'UF_XML_ID',
+                ],
+                "order" => [
+                    'UF_SORT' => 'ASC',
+                ],
+            ]
+        );
+
+        while($arCatagory = $arCatagorys->Fetch()){
+            $this->objectsHLBCategory[$arCatagory['XML_ID']] = $arCatagory['NAME'];
+        }
+
+    }
+
+    public function add($nameCat, $code)
+    {
+        $data = [
+            'UF_NAME' => $nameCat,
+            'UF_XML_ID'=> $code,
+        ];
+
+        $this->objectsHLBCategory[$code] = $nameCat;
+
+        CategoryTable::add($data);
+    }
+
+    public function getElementCatagory($xml_id)
+    {
+        return $this->objectsHLBCategory[$xml_id];
+    }
+
+    public function allElementCatagory()
+    {
+        return $this->objectsHLBCategory;
+    }
+}
 
 
-class SiteUtil{
 
-    private $objectsElements = array();
-    private $lastNewsElement = array();
-    private $objectsHLCategory = array();
-    private $categoryHL = 'Category';
+
+class SiteUtil
+{
+    private $objectsElements = [];
+    private $lastNewsElement = [];
     private $elementCodeIblockNews = 'NEWS_'.LANGUAGE_ID;
     private $elementIdIblockNews = null;
     private $addElementCount = 0;
     private $searchElementCount = 0;
+    private $CategoryHLB;
+
+    public function __construct()
+    {
+        $this->CategoryHLB = new CategoryHLB;
+    }
 
     CONST PARAMS = [
         'max_len' => '100', // обрезает символьный код до 100 символов
@@ -29,124 +186,78 @@ class SiteUtil{
         'use_google' => 'false', // отключаем использование google
     ];
 
-    private function write($data){
-        echo '<pre>'. print_r($data, 1) .'</pre>';
+    private function writeSearchElement($arSearchElements)
+    {
+        echo '<pre>'. print_r($arSearchElements, 1) .'</pre>';
     }
 
-    private function number($n, $titles) {
-        $cases = array(2, 0, 1, 1, 1, 2);
-        return $titles[($n % 100 > 4 && $n % 100 < 20) ? 2 : $cases[min($n % 10, 5)]];
+    private function getRussianWordNumber($col_max, $word1, $word2, $word3)
+    {
+        $col_max = abs($col_max) % 100;
+        $col_min = $col_max % 10;
+
+        if ($col_max > 10 && $col_max < 20)
+            return $word3;
+
+        if ($col_min > 1 && $col_min < 5)
+            return $word2;
+
+        if ($col_min == 1)
+            return $word1;
+
+        return $word3;
     }
 
-    private  function GetIBlockIDByCode($code){
-        $arrFilter = array(
-            'ACTIVE'  => 'Y',
-            'CODE'    => $code,
-        );
+    private function getIBlockIDByCode($code)
+    {
+        $arIblock = \Bitrix\Iblock\IblockTable::getList(array(
+            'select' => ['ID'],
+            'filter' => ['CODE' => $code],
+        ))->fetch();
 
-        $res = CIBlock::GetList(Array("SORT" => "ASC"), $arrFilter, false);
-        $arIBlockId = "";
-
-        if ($ar_res = $res->Fetch()) {
-            $arIBlockId = $ar_res["ID"];
-        }
-
-        return $arIBlockId;
+        return $arIblock['ID'];
     }
-
-
-    /*
-     *
-     * BEGIN функции для работы с Highload
-     *
-     * */
-
-    /*Один раз получаем все категории для новостей*/
-    public function getHL(){
-        $entity = HL\HighloadBlockTable::compileEntity($this->categoryHL);
-        $entity_data_class = $entity->getDataClass();
-
-        $rsData = $entity_data_class::getList(array(
-            'select' => array(
-                'UF_NAME',
-                'UF_XML_ID'
-            ),
-            'order' => array(
-                'ID' => 'ASC'
-            ),
-        ));
-        while($arData = $rsData->Fetch()){
-            $this->objectsHLCategory[$arData['UF_XML_ID']] = $arData['UF_NAME'];
-        }
-    }
-
-    //Функция добавления новой категории в Highload.
-    private function addHL($nameCat, $code){
-
-        $entity = HL\HighloadBlockTable::compileEntity($this->categoryHL);
-        $entity_data_class = $entity->getDataClass();
-
-        $data = array(
-            'UF_NAME' => $nameCat,
-            'UF_XML_ID'=> $code,
-        );
-
-        if($CATEGORY_ID = $entity_data_class::add($data)) {
-            echo 'Добавлена новая категория: '.$nameCat .'<br>';
-            $this->objectsHLCategory[$code] = $nameCat;
-        } else {
-            echo 'Ошибка при создание новости: '.$CATEGORY_ID->LAST_ERROR.'<br>';
-        }
-
-    }
-
-    /*
-    *
-    * END функции для работы с Highload
-    *
-    * */
 
     /*
     *
     * BEGIN функции для работы с инфоблокам Новости
     *
     * */
-    public function load_from_xml($xmlData) {
+    public function loadFromXml($fileRssLenta)
+    {
+        $this->elementIdIblockNews = self::getIBlockIDByCode($this->elementCodeIblockNews);
+        $this->CategoryHLB->getList();
+        self::lastElement();
+        
+        $arrDataRss = (json_decode(json_encode($fileRssLenta), true));
 
-        $this->elementIdIblockNews = self::GetIBlockIDByCode($this->elementCodeIblockNews);
-
-        $arrData = (json_decode(json_encode($xmlData), true));
-
-        foreach ($arrData['channel']['item'] as $item=>$arItem){
-
-            $data_active_from = date('d.m.Y G:i:s', strtotime($arItem['pubDate']));
-            $code_element = Cutil::translit($arItem['title'],'ru', self::PARAMS);
+        foreach ($arrDataRss['channel']['item'] as $item=>$arItem){
+            $dataActiveFrom = date('d.m.Y G:i:s', strtotime($arItem['pubDate']));
+            $codeElement = Cutil::translit($arItem['title'],'ru', self::PARAMS);
 
             //Проверяем элемент с RSS ленты с последним елементом в инфоблоке. Делаем это для того, что бы уменьшить кол-во запросов к БД
-            if(!($this->lastNewsElement['DATE_ACTIVE_FROM'] != $data_active_from && $this->lastNewsElement['NAME'] != trim($arItem['title']))){
+            if(!($this->lastNewsElement['DATE_ACTIVE_FROM'] != $dataActiveFrom && $this->lastNewsElement['NAME'] != trim($arItem['title']))){
                 break;
             }
 
-            $xml_id = Cutil::translit($arItem['category'],'ru', self::PARAMS);
-
-            $props['CATEGORY'] = $xml_id;
+            $xmlId = Cutil::translit($arItem['category'],'ru', self::PARAMS);
+            $props['CATEGORY'] = $xmlId;
             $props['URL'] = $arItem['link'];
 
             //Проверяем есть ли категория в Highload-блоке, если нет, то добавляем новую категорию
-            if(empty($this->objectsHLCategory[$xml_id])){
-                self::addHL($arItem['category'], $xml_id);
+            if(empty($this->CategoryHLB->getElementCatagory($xmlId))){
+                $this->CategoryHLB->add($arItem['category'], $xmlId);
             }
 
             $this->objectsElements[$item]['IBLOCK_ID'] = $this->elementIdIblockNews;
             $this->objectsElements[$item]['NAME'] = trim($arItem['title']);
-            $this->objectsElements[$item]['CODE'] =  $code_element;
+            $this->objectsElements[$item]['CODE'] =  $codeElement;
             $this->objectsElements[$item]['ACTIVE'] =  'Y';
             $this->objectsElements[$item]['PREVIEW_TEXT'] =  $arItem['description'];
-            $this->objectsElements[$item]['DATE_ACTIVE_FROM'] =  $data_active_from;
+            $this->objectsElements[$item]['DATE_ACTIVE_FROM'] =  $dataActiveFrom;
             $this->objectsElements[$item]['PROPERTY_VALUES'] =  $props;
 
             self::addElement($this->objectsElements[$item]);
-
         }
 
         if($this->addElementCount > 0){
@@ -158,10 +269,11 @@ class SiteUtil{
     }
 
     //Функция добавления новой новости
-    private function addElement($element){
+    private function addElement($element)
+    {
         $el = new CIBlockElement;
-        if($PRODUCT_ID = $el->Add($element)) {
-            echo 'Добавлена новая новость ID: '.$PRODUCT_ID .'<br>';
+        if($newElemeniId = $el->Add($element)) {
+            echo 'Добавлена новая новость ID: '.$newElemeniId .'<br>';
             $this->addElementCount++;
         } else {
             echo 'Ошибка при создание новости: '.$el->LAST_ERROR.'<br>';
@@ -169,19 +281,28 @@ class SiteUtil{
     }
 
     //Данная функция получает последнюю новость, данная функция надо для того, чтобы ограничить добавления новостей с RSS ленты.
-    public function lastElement(){
-        $arSelect = array('NAME', 'DATE_ACTIVE_FROM');
-        $arFilter = array('IBLOCK_ID' => $this->elementIdIblockNews);
-        $res = CIBlockElement::GetList(array('DATE_ACTIVE_FROM'=>'DESC'), $arFilter, false, array('nPageSize' => 1), $arSelect);
-        if ($ob = $res->fetch()) {
-            $this->lastNewsElement['NAME'] = $ob['NAME'];
-            $this->lastNewsElement['DATE_ACTIVE_FROM'] = $ob['DATE_ACTIVE_FROM'];
-        }
+    public function lastElement()
+    {
+        $lastElements = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
+            'order'  => ['ACTIVE_FROM' => 'DESC'],
+            'select' => ['NAME', 'ACTIVE_FROM'],
+            'filter' => ['=ACTIVE' => 'Y'],
+            'cache'  => ['ttl' => 3600],
+            'limit'  => 1,
+        ])->fetch();
+
+        $this->lastNewsElement['NAME'] = $lastElements['NAME'];
+        $this->lastNewsElement['DATE_ACTIVE_FROM'] = CDatabase::FormatDate($lastElements['ACTIVE_FROM']);
     }
 
-    public function searchElement($q){
+    public function searchElement($q)
+    {
+        $this->CategoryHLB->getList();
+        $allCategory = $this->CategoryHLB->allElementCatagory();
+
         $searchElement = '';
-        foreach ($this->objectsHLCategory as $code=>$arCatagory){
+
+        foreach ($allCategory as $code=>$arCatagory){
             if(mb_strpos(mb_strtolower($arCatagory), mb_strtolower($q)) !== false ){
                 $arFilterCode[] = $code;
                 $searchElement .= $arCatagory .', ';
@@ -190,36 +311,36 @@ class SiteUtil{
         }
 
         if($this->searchElementCount > 0){
-            $textElement =  self::number($this->searchElementCount, array('элемент', 'элемента', 'элементов'));
+            $textElement =  self::getRussianWordNumber($this->searchElementCount, 'элемент', 'элемента', 'элементов');
             echo 'По поисковой фразе: "'.$q.'" было найдено '. $this->searchElementCount . ' '.$textElement.'.<br>';
             echo 'Найденные категории: '.substr($searchElement, 0, -2).'<br>';
         } else {
             echo 'По поисковой фразе: "'.$q.'" не найдено ни одного элемента.<br>';
         }
 
-        $arSelect = array('ID', 'NAME', 'PREVIEW_TEXT', 'DATE_ACTIVE_FROM', 'PROPERTY_CATEGORY', 'PROPERTY_URL');
-        $arFilter = array('IBLOCK_ID' => $this->elementIdIblockNews, 'PROPERTY_CATEGORY'=>$arFilterCode);
-        $res = CIBlockElement::GetList(array('DATE_ACTIVE_FROM'=>'DESC'), $arFilter, false, false, $arSelect);
-        while($ob = $res->fetch()) {
-            $arsearchElement[$ob['ID']]['NAME'] = $ob['NAME'];
-            $arsearchElement[$ob['ID']]['URL'] = $ob['PROPERTY_URL_VALUE'];
-            $arsearchElement[$ob['ID']]['PREVIEW_TEXT'] = $ob['PREVIEW_TEXT'];
-            $arsearchElement[$ob['ID']]['DATE_ACTIVE_FROM'] = $ob['DATE_ACTIVE_FROM'];
-            $arsearchElement[$ob['ID']]['CATEGORY'] = $this->objectsHLCategory[$ob['PROPERTY_CATEGORY_VALUE']];
+        $elements = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
+            'select' => ['ID', 'NAME', 'PREVIEW_TEXT', 'ACTIVE_FROM', 'CATEGORY', 'URL'],
+            'filter' => ['=ACTIVE' => 'Y', 'IBLOCK_ELEMENTS_ELEMENT_NEWS_CATEGORY_VALUE' => $arFilterCode],
+            'cache'  => ['ttl' => 3600],
+        ])->fetchAll();
+
+        global $DB;
+
+        foreach ($elements as $element) {
+            $arSearchElements[$element['ID']]['NAME'] = $element['NAME'];
+            $arSearchElements[$element['ID']]['URL'] = $element['IBLOCK_ELEMENTS_ELEMENT_NEWS_URL_VALUE'];
+            $arSearchElements[$element['ID']]['PREVIEW_TEXT'] = $element['PREVIEW_TEXT'];
+            $arSearchElements[$element['ID']]['DATE_ACTIVE_FROM'] = CDatabase::FormatDate($element['ACTIVE_FROM']);
+            $arSearchElements[$element['ID']]['CATEGORY'] = $this->CategoryHLB->getElementCatagory($element['IBLOCK_ELEMENTS_ELEMENT_NEWS_CATEGORY_VALUE']);
         }
 
-        self::write($arsearchElement);
+        self::writeSearchElement($arSearchElements);
     }
-    /*
-    *
-    * END функции для работы с инфоблокам Новости
-    *
-    * */
-
-
 
 }
 ?>
+
+
 
 <h1>Тестовое задание для разработчиков Bitrix</h1>
 
@@ -240,14 +361,10 @@ class SiteUtil{
 $SiteUtil = new \SiteUtil;
 
 if($_GET['parser_rss'] == 'y'){
-    $SiteUtil->getHL();
-    $SiteUtil->lastElement();
     $xmlData=simplexml_load_file('https://lenta.ru/rss', null, LIBXML_NOCDATA);
-    $SiteUtil->load_from_xml($xmlData);
+    $SiteUtil->loadFromXml($xmlData);
 }
 if(!empty($_GET['q'])){
-    $SiteUtil->getHL();
-    $SiteUtil->lastElement();
     $SiteUtil->searchElement($_GET['q']);
 }
 

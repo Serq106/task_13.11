@@ -3,7 +3,7 @@
 namespace Sprint\Migration;
 
 
-class Version20221113131609 extends Version
+class Version20221117153915 extends Version
 {
     protected $description = "";
 
@@ -42,22 +42,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Название',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Название',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Название',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -81,22 +86,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Сортировка',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Сортировка',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Сортировка',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -122,22 +132,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Внешний код',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Внешний код',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Внешний код',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -163,22 +178,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Ссылка',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Ссылка',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Ссылка',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -204,22 +224,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Описание',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Описание',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Описание',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -245,22 +270,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Полное описание',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Полное описание',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Полное описание',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -288,22 +318,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'По умолчанию',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'По умолчанию',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'По умолчанию',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
@@ -332,22 +367,27 @@ class Version20221113131609 extends Version
   ),
   'EDIT_FORM_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Изображение',
   ),
   'LIST_COLUMN_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Изображение',
   ),
   'LIST_FILTER_LABEL' => 
   array (
+    'en' => '',
     'ru' => 'Изображение',
   ),
   'ERROR_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
   'HELP_MESSAGE' => 
   array (
+    'en' => NULL,
     'ru' => NULL,
   ),
 ));
