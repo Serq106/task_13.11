@@ -226,7 +226,6 @@ class UpdateNews{
             'order'  => ['ACTIVE_FROM' => 'DESC'],
             'select' => ['NAME', 'ACTIVE_FROM'],
             'filter' => ['=ACTIVE' => 'Y'],
-            'cache'  => ['ttl' => 3600],
             'limit'  => 1,
         ])->fetch();
 
@@ -336,7 +335,6 @@ class GetElementNews
         $elements = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
             'select' => ['ID', 'NAME', 'PREVIEW_TEXT', 'ACTIVE_FROM', 'CATEGORY', 'URL'],
             'filter' => ['=ACTIVE' => 'Y', 'IBLOCK_ELEMENTS_ELEMENT_NEWS_CATEGORY_VALUE' => $arFilterCode],
-            'cache'  => ['ttl' => 3600],
         ])->fetchAll();
 
         if(count($elements) > 0){
