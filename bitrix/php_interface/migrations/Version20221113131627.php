@@ -3,7 +3,7 @@
 namespace Sprint\Migration;
 
 
-class Version20221117153910 extends Version
+class Version20221113131627 extends Version
 {
     protected $description = "";
 
@@ -46,8 +46,8 @@ class Version20221117153910 extends Version
     0 => 's1',
   ),
   'CODE' => 'NEWS_ru',
-  'API_CODE' => 'News',
-  'REST_ON' => 'Y',
+  'API_CODE' => NULL,
+  'REST_ON' => 'N',
   'NAME' => 'Новости',
   'ACTIVE' => 'Y',
   'SORT' => '500',
@@ -72,7 +72,7 @@ class Version20221117153910 extends Version
   'SECTION_CHOOSER' => 'L',
   'LIST_MODE' => '',
   'RIGHTS_MODE' => 'S',
-  'SECTION_PROPERTY' => 'Y',
+  'SECTION_PROPERTY' => 'N',
   'PROPERTY_INDEX' => 'N',
   'VERSION' => '2',
   'LAST_CONV_ELEMENT' => '0',
@@ -416,12 +416,7 @@ class Version20221117153910 extends Version
     array (
       'columns' => 
       array (
-        0 => 'NAME',
-        1 => 'ACTIVE',
-        2 => 'DATE_ACTIVE_FROM',
-        3 => 'SORT',
-        4 => 'TIMESTAMP_X',
-        5 => 'ID',
+        0 => '',
       ),
       'columns_sizes' => 
       array (
@@ -433,10 +428,9 @@ class Version20221117153910 extends Version
       'sticked_columns' => 
       array (
       ),
-      'last_sort_by' => 'id',
+      'last_sort_by' => 'name',
       'last_sort_order' => 'desc',
       'page_size' => 200,
-      'custom_names' => NULL,
     ),
   ),
   'filters' => 
