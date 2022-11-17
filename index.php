@@ -133,7 +133,6 @@ class CategoryHLB
         while($arCatagory = $arCatagorys->Fetch()){
             $this->objectsHLBCategory[$arCatagory['XML_ID']] = $arCatagory['NAME'];
         }
-
     }
 
     public function add($nameCat, $code)
@@ -159,19 +158,16 @@ class CategoryHLB
     }
 }
 
-
-
-
-class SiteUtil
+class ElementNews
 {
     private $objectsElements = [];
     private $lastNewsElement = [];
     private $elementCodeIblockNews = 'NEWS_'.LANGUAGE_ID;
     private $elementIdIblockNews = null;
     private $addElementCount = 0;
-    private $searchElementCount = 0;
-    private $CategoryHLB;
+    private $searchECategoryCount = 0;
 
+    private $CategoryHLB;
     public function __construct()
     {
         $this->CategoryHLB = new CategoryHLB;
@@ -228,7 +224,7 @@ class SiteUtil
         $this->elementIdIblockNews = self::getIBlockIDByCode($this->elementCodeIblockNews);
         $this->CategoryHLB->getList();
         self::lastElement();
-        
+
         $arrDataRss = (json_decode(json_encode($fileRssLenta), true));
 
         foreach ($arrDataRss['channel']['item'] as $item=>$arItem){
@@ -306,16 +302,15 @@ class SiteUtil
             if(mb_strpos(mb_strtolower($arCatagory), mb_strtolower($q)) !== false ){
                 $arFilterCode[] = $code;
                 $searchElement .= $arCatagory .', ';
-                $this->searchElementCount++;
+                $this->searchECategoryCount++;
             }
         }
 
-        if($this->searchElementCount > 0){
-            $textElement =  self::getRussianWordNumber($this->searchElementCount, 'элемент', 'элемента', 'элементов');
-            echo 'По поисковой фразе: "'.$q.'" было найдено '. $this->searchElementCount . ' '.$textElement.'.<br>';
-            echo 'Найденные категории: '.substr($searchElement, 0, -2).'<br>';
+        if($this->searchECategoryCount > 0){
+            $textElement =  self::getRussianWordNumber($this->searchECategoryCount, 'категория', 'категории', 'категорий');
+            echo 'По поисковой фразе: "'.$q.'" было найдено '. $this->searchECategoryCount . ' '.$textElement.': '.substr($searchElement, 0, -2).'.<br>';
         } else {
-            echo 'По поисковой фразе: "'.$q.'" не найдено ни одного элемента.<br>';
+            echo 'По поисковой фразе: "'.$q.'" не найдено ни одной категории.<br>';
         }
 
         $elements = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
@@ -324,7 +319,10 @@ class SiteUtil
             'cache'  => ['ttl' => 3600],
         ])->fetchAll();
 
-        global $DB;
+        if(count($elements) > 0){
+            $textElement =  self::getRussianWordNumber(count($elements), 'новость', 'новости', 'новостей');
+            echo 'Количество найденных новостей: '.count($elements) .'.<br>';
+        }
 
         foreach ($elements as $element) {
             $arSearchElements[$element['ID']]['NAME'] = $element['NAME'];
@@ -336,11 +334,8 @@ class SiteUtil
 
         self::writeSearchElement($arSearchElements);
     }
-
 }
 ?>
-
-
 
 <h1>Тестовое задание для разработчиков Bitrix</h1>
 
@@ -353,19 +348,14 @@ class SiteUtil
     <button type="submit">Поиск</button>
 </form>
 
-
-
-
 <?
-
-$SiteUtil = new \SiteUtil;
+$ElementNews = new \ElementNews;
 
 if($_GET['parser_rss'] == 'y'){
     $xmlData=simplexml_load_file('https://lenta.ru/rss', null, LIBXML_NOCDATA);
-    $SiteUtil->loadFromXml($xmlData);
+    $ElementNews->loadFromXml($xmlData);
 }
 if(!empty($_GET['q'])){
-    $SiteUtil->searchElement($_GET['q']);
+    $ElementNews->searchElement($_GET['q']);
 }
-
 ?>
