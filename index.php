@@ -283,7 +283,7 @@ class GetElementNews
 {
     private $searchECategoryCount = 0;
     private $CategoryHLB;
-    
+
     public function __construct()
     {
         $this->CategoryHLB = new CategoryHLB;
